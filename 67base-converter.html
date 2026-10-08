@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>67进制转换器</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+        --bg: #0f1117;
+        --panel: #1a1d27;
+        --panel-2: #22263a;
+        --border: #2e3350;
+        --text: #e6e9f0;
+        --muted: #8b90a8;
+        --accent: #7c5cff;
+        --accent-2: #00d4b8;
+        --error: #ff5c7a;
+    }
+
+    body {
+        background: radial-gradient(1200px 600px at 20% -10%, #1c1633 0%, transparent 60%),
+                    radial-gradient(1000px 500px at 90% 110%, #0c2b28 0%, transparent 55%),
+                    var(--bg);
+        color: var(--text);
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 16px;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 880px;
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        margin-bottom: 6px;
+    }
+
+    h1 .grad {
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 28px;
+    }
+
+    .converter {
+        display: grid;
+        grid-template-columns: 1fr 44px 1fr;
+        gap: 12px;
+        align-items: stretch;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 640px) {
+        .converter { grid-template-columns: 1fr; }
+        .swap-icon { transform: rotate(90deg); margin: 0 auto; }
+    }
+
+    .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        transition: border-color .2s;
+    }
+
+    .panel:focus-within { border-color: var(--accent); }
+
+    .panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .panel-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 1px;
+    }
+
+    .panel-label .base-tag {
+        display: inline-block;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        margin-left: 8px;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+    }
+
+    .panel-label .base-tag.b67 { color: var(--accent-2); border-color: #155e50; }
+
+    .btns { display: flex; gap: 6px; }
+
+    button.tool {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all .15s;
+    }
+
+    button.tool:hover { color: var(--text); border-color: var(--accent); }
+
+    textarea {
+        width: 100%;
+        min-height: 110px;
+        resize: vertical;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text);
+        font-family: "Consolas", "Menlo", monospace;
+        font-size: 16px;
+        line-height: 1.6;
+        word-break: break-all;
+    }
+
+    textarea::placeholder { color: #4a4f68; }
+
+    .hint {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+        min-height: 16px;
+    }
+
+    .hint.error { color: var(--error); }
+
+    .swap-icon {
+        align-self: center;
+        font-size: 22px;
+        color: var(--accent);
+        user-select: none;
+    }
+
+    .table-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 1px;
+        margin: 8px 0 12px;
+        text-align: center;
+    }
+
+    .table-wrap {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .table-wrap::-webkit-scrollbar { width: 8px; }
+    .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "Consolas", "Menlo", monospace;
+        font-size: 13px;
+    }
+
+    th, td {
+        padding: 5px 4px;
+        text-align: center;
+        border-bottom: 1px solid #232740;
+    }
+
+    th { color: var(--accent-2); font-weight: 600; position: sticky; top: -16px; background: var(--panel); padding-top: 12px; }
+
+    td.num { color: var(--muted); }
+    td.chr { color: var(--text); font-weight: 600; }
+    tr:hover td { background: var(--panel-2); }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1><span class="grad">67 进制转换器</span></h1>
+    <p class="subtitle">0-9 · A-Z · a-z · !@#$% &nbsp;|&nbsp; 支持 BigInt 任意大整数 · 大小写敏感</p>
+
+    <div class="converter">
+        <div class="panel">
+            <div class="panel-head">
+                <span class="panel-label">十进制<span class="base-tag">BASE 10</span></span>
+                <div class="btns">
+                    <button class="tool" id="copy10">复制</button>
+                    <button class="tool" id="clear10">清空</button>
+                </div>
+            </div>
+            <textarea id="decInput" placeholder="输入十进制整数，例如: 123456789012345678901234567890" spellcheck="false"></textarea>
+            <div class="hint" id="decHint"></div>
+        </div>
+
+        <div class="swap-icon">⇄</div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <span class="panel-label">67 进制<span class="base-tag b67">BASE 67</span></span>
+                <div class="btns">
+                    <button class="tool" id="copy67">复制</button>
+                    <button class="tool" id="clear67">清空</button>
+                </div>
+            </div>
+            <textarea id="b67Input" placeholder="输入67进制数，例如: 67:1A2b!3  (前缀可省略)" spellcheck="false"></textarea>
+            <div class="hint" id="b67Hint"></div>
+        </div>
+    </div>
+
+    <div class="table-title">字符对照表（0 – 66）</div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>值</th><th>字符</th><th>值</th><th>字符</th><th>值</th><th>字符</th><th>值</th><th>字符</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+(function () {
+    "use strict";
+
+    var BASE = 67n;
+    var CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%";
+    var charToVal = {};
+    for (var i = 0; i < CHARS.length; i++) charToVal[CHARS[i]] = BigInt(i);
+
+    var decInput = document.getElementById("decInput");
+    var b67Input = document.getElementById("b67Input");
+    var decHint = document.getElementById("decHint");
+    var b67Hint = document.getElementById("b67Hint");
+
+    var updating = false;
+
+    function setHint(el, msg, isErr) {
+        el.textContent = msg || "";
+        el.className = "hint" + (isErr ? " error" : "");
+    }
+
+    // ---------- 十进制 -> 67进制 ----------
+    function decTo67(decStr) {
+        var cleaned = decStr.replace(/[\s,]/g, "");
+        if (cleaned === "") return { ok: true, value: "", neg: false };
+        var m = cleaned.match(/^([+-]?)(\d+)$/);
+        if (!m) return { ok: false, error: "无效的十进制输入" };
+
+        var neg = m[1] === "-";
+        var n = BigInt(m[2]);
+        if (n === 0n) return { ok: true, value: "0", neg: false };
+
+        var digits = "";
+        while (n > 0n) {
+            var r = n % BASE;
+            digits = CHARS[Number(r)] + digits;
+            n = n / BASE;
+        }
+        return { ok: true, value: digits, neg: neg && digits !== "0" };
+    }
+
+    // ---------- 67进制 -> 十进制 ----------
+    function b67ToDec(b67Str) {
+        var cleaned = b67Str.replace(/[\s,]/g, "");
+        var m = cleaned.match(/^([+-]?)(?:67:)?(.*)$/i);
+        var neg = m[1] === "-";
+        var body = m[2];
+        if (body === "") return { ok: true, value: "", neg: false };
+
+        var n = 0n;
+        for (var i = 0; i < body.length; i++) {
+            var c = body[i];
+            if (!(c in charToVal)) {
+                return { ok: false, error: "非法字符: \"" + c + "\"" };
+            }
+            n = n * BASE + charToVal[c];
+        }
+        return { ok: true, value: n.toString(10), neg: neg && n !== 0n };
+    }
+
+    // ---------- 联动 ----------
+    decInput.addEventListener("input", function () {
+        if (updating) return;
+        updating = true;
+        var s = decInput.value;
+        if (s.trim() === "") {
+            b67Input.value = "";
+            setHint(decHint, "");
+            setHint(b67Hint, "");
+            updating = false;
+            return;
+        }
+        var r = decTo67(s);
+        if (r.ok) {
+            b67Input.value = r.value === "" ? "" : (r.neg ? "-" : "") + r.value;
+            setHint(decHint, "");
+            setHint(b67Hint, "");
+        } else {
+            setHint(decHint, r.error, true);
+            setHint(b67Hint, "");
+        }
+        updating = false;
+    });
+
+    b67Input.addEventListener("input", function () {
+        if (updating) return;
+        updating = true;
+        var s = b67Input.value;
+        if (s.trim() === "") {
+            decInput.value = "";
+            setHint(decHint, "");
+            setHint(b67Hint, "");
+            updating = false;
+            return;
+        }
+        var r = b67ToDec(s);
+        if (r.ok) {
+            decInput.value = r.value === "" ? "" : (r.neg ? "-" : "") + r.value;
+            setHint(b67Hint, "");
+            setHint(decHint, "");
+        } else {
+            setHint(b67Hint, r.error, true);
+            setHint(decHint, "");
+        }
+        updating = false;
+    });
+
+    // ---------- 复制 / 清空 ----------
+    function bindTool(btnId, input) {
+        var btn = document.getElementById(btnId);
+        if (btnId.indexOf("copy") === 0) {
+            btn.addEventListener("click", function () {
+                if (!input.value) return;
+                var done = function () {
+                    btn.textContent = "已复制";
+                    setTimeout(function () { btn.textContent = "复制"; }, 1200);
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(input.value).then(done, done);
+                } else {
+                    input.select();
+                    document.execCommand("copy");
+                    done();
+                }
+            });
+        } else {
+            btn.addEventListener("click", function () {
+                input.value = "";
+                input.dispatchEvent(new Event("input"));
+                input.focus();
+            });
+        }
+    }
+    bindTool("copy10", decInput);
+    bindTool("clear10", decInput);
+    bindTool("copy67", b67Input);
+    bindTool("clear67", b67Input);
+
+    // ---------- 字符对照表 ----------
+    var tbody = document.getElementById("tableBody");
+    var cols = 4, rows = Math.ceil(67 / cols);
+    var html = "";
+    for (var r = 0; r < rows; r++) {
+        html += "<tr>";
+        for (var c = 0; c < cols; c++) {
+            var v = r + c * rows;
+            if (v < 67) {
+                html += '<td class="num">' + v + '</td><td class="chr">' +
+                        (CHARS[v] === "<" ? "&lt;" : CHARS[v] === ">" ? "&gt;" : CHARS[v] === "&" ? "&amp;" : CHARS[v]) +
+                        "</td>";
+            } else {
+                html += '<td class="num"></td><td class="chr"></td>';
+            }
+        }
+        html += "</tr>";
+    }
+    tbody.innerHTML = html;
+})();
+</script>
+</body>
+</html>
